@@ -1,0 +1,30 @@
+name: CloudSim VM Allocation Simulation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Compile Java code
+        run: |
+          mkdir -p out
+          javac -cp "libs/cloudsim-3.0.3.jar" -d out src/main/java/org/cloudsim/*.java
+
+      - name: Run Simulation
+        run: |
+          java -cp "libs/cloudsim-3.0.3.jar:out" org.cloudsim.Main
