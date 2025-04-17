@@ -55,7 +55,6 @@ public class Main {
             CloudSim.init(numUsers, Calendar.getInstance(), traceFlag);
 
             Datacenter datacenter0 = createDatacenter("Datacenter_0");
-
             DatacenterBroker broker = createBroker();
             int brokerId = broker.getId();
 
@@ -92,7 +91,6 @@ public class Main {
                     break;
                 }
             }
-
             if (!assigned) {
                 cloudlet.setVmId(vms.get(vms.size() - 1).getId());
             }
@@ -101,7 +99,6 @@ public class Main {
 
     private static Datacenter createDatacenter(String name) {
         List<Host> hostList = new ArrayList<>();
-
         List<Pe> peList = new ArrayList<>();
         peList.add(new Pe(0, new PeProvisionerSimple(50000)));
 
@@ -124,7 +121,7 @@ public class Main {
 
         DatacenterCharacteristics characteristics = new DatacenterCharacteristics(arch, os, vmm, hostList, timeZone, cost, costPerMem, costPerStorage, costPerBw);
 
-        Datacenter dat acenter = null;
+        Datacenter datacenter = null;
         try {
             datacenter = new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), storageList, 0);
         } catch (Exception e) {
@@ -176,7 +173,7 @@ public class Main {
 
         for (int i = 0; i < lengths.length; i++) {
             Cloudlet cloudlet = new Cloudlet(i, lengths[i], pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-            cloudlet.setUser Id(brokerId);
+            cloudlet.setUserId(brokerId);
             list.add(cloudlet);
         }
 
@@ -186,21 +183,17 @@ public class Main {
     private static void printCloudletList(List<Cloudlet> list) {
         int size = list.size();
         Cloudlet cloudlet;
-
         String indent = "    ";
         Log.printLine();
         Log.printLine("========== OUTPUT ==========");
-        Log.printLine("Cloudlet ID" + indent + "STATUS" + indent +
-                "Data center ID" + indent + "VM ID" + indent + "Time" + indent + "Start Time" + indent + "Finish Time");
+        Log.printLine("Cloudlet ID" + indent + "STATUS" + indent + "Data center ID" + indent + "VM ID" + indent + "Time" + indent + "Start Time" + indent + "Finish Time");
 
         DecimalFormat dft = new DecimalFormat("###.##");
         for (int i = 0; i < size; i++) {
             cloudlet = list.get(i);
             Log.print(indent + cloudlet.getCloudletId() + indent + indent);
-
             if (cloudlet.getCloudletStatus() == Cloudlet.SUCCESS) {
                 Log.print("SUCCESS");
-
                 Log.printLine(indent + indent + cloudlet.getResourceId() + indent + indent + indent + cloudlet.getVmId() +
                         indent + indent + dft.format(cloudlet.getActualCPUTime()) + indent + indent + dft.format(cloudlet.getExecStartTime()) +
                         indent + indent + dft.format(cloudlet.getFinishTime()));
