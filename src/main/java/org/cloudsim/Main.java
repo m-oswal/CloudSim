@@ -45,9 +45,6 @@ class CustomVM extends Vm {
 }
 
 public class Main {
-    private static List<Cloudlet> cloudletList;
-    private static List<CustomVM> vmList;
-
     public static void main(String[] args) {
         try {
             int numUsers = 2;
@@ -55,25 +52,49 @@ public class Main {
             CloudSim.init(numUsers, Calendar.getInstance(), traceFlag);
 
             Datacenter datacenter0 = createDatacenter("Datacenter_0");
-            DatacenterBroker broker = createBroker();
-            int brokerId = broker.getId();
+            DatacenterBroker brokerOptimal = createBroker();
+            DatacenterBroker brokerNaive = createBroker();
 
-            vmList = createVMs(brokerId);
-            cloudletList = createCloudlets(brokerId);
+            int brokerIdOptimal = brokerOptimal.getId();
+            int brokerIdNaive = brokerNaive.getId();
 
-            Collections.sort(cloudletList, Comparator.comparingLong(Cloudlet::getCloudletLength));
-            Collections.sort(vmList, Comparator.comparingDouble(CustomVM::getPrice));
+            // For optimal strategy (cost-aware with cheaper VMs)
+            List<CustomVM> vmListOptimal = createVMs(brokerIdOptimal, true);
+            List<Cloudlet> optimalCloudlets = createCloudlets(brokerIdOptimal);
 
-            assignOptimally(cloudletList, vmList);
+            Collections.sort(optimalCloudlets, Comparator.comparingLong(Cloudlet::getCloudletLength));
+            Collections.sort(vmListOptimal, Comparator.comparingDouble(CustomVM::getPrice));
+            assignOptimally(optimalCloudlets, vmListOptimal);
 
-            broker.submitVmList(new ArrayList<>(vmList));
-            broker.submitCloudletList(cloudletList);
+            brokerOptimal.submitVmList(new ArrayList<>(vmListOptimal));
+            brokerOptimal.submitCloudletList(optimalCloudlets);
+
+            // For naive strategy (more expensive VMs)
+            List<CustomVM> vmListNaive = createVMs(brokerIdNaive, false);
+            List<Cloudlet> naiveCloudlets = createCloudlets(brokerIdNaive);
+
+            assignNaively(naiveCloudlets, vmListNaive);
+
+            brokerNaive.submitVmList(new ArrayList<>(vmListNaive));
+            brokerNaive.submitCloudletList(naiveCloudlets);
 
             CloudSim.startSimulation();
             CloudSim.stopSimulation();
 
-            List<Cloudlet> newList = broker.getCloudletReceivedList();
-            printCloudletList(newList);
+            List<Cloudlet> listOptimal = brokerOptimal.getCloudletReceivedList();
+            List<Cloudlet> listNaive = brokerNaive.getCloudletReceivedList();
+
+            Log.printLine("\n\n=== Results for Optimal (Cost-Aware) Allocation ===");
+            double costOptimal = printCloudletList(listOptimal, vmListOptimal);
+
+            Log.printLine("\n\n=== Results for Naive (Random) Allocation ===");
+            double costNaive = printCloudletList(listNaive, vmListNaive);
+
+            // Summary
+            Log.printLine("\n\n=== Summary ===");
+            Log.printLine("Total Cost (Optimal): $" + new DecimalFormat("###.##").format(costOptimal));
+            Log.printLine("Total Cost (Naive)  : $" + new DecimalFormat("###.##").format(costNaive));
+            Log.printLine("Cost Saved by Optimal: $" + new DecimalFormat("###.##").format(costNaive - costOptimal));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -94,6 +115,14 @@ public class Main {
             if (!assigned) {
                 cloudlet.setVmId(vms.get(vms.size() - 1).getId());
             }
+        }
+    }
+
+    private static void assignNaively(List<Cloudlet> cloudlets, List<CustomVM> vms) {
+        int vmIndex = 0;
+        for (Cloudlet cloudlet : cloudlets) {
+            cloudlet.setVmId(vms.get(vmIndex).getId());
+            vmIndex = (vmIndex + 1) % vms.size(); // Round-robin assignment
         }
     }
 
@@ -142,11 +171,13 @@ public class Main {
         return broker;
     }
 
-    private static List<CustomVM> createVMs(int brokerId) {
+    private static List<CustomVM> createVMs(int brokerId, boolean isCostAware) {
         List<CustomVM> vms = new ArrayList<>();
 
-        int[] mips = {1000, 2000, 3000, 4000};
-        double[] prices = {0.1, 0.15, 0.3, 0.35};
+        int[] mips = {1000, 2000, 3000, 5000};
+        double[] pricesCostAware = {0.05, 0.08, 0.12, 0.2}; // cheaper VMs
+        double[] pricesNaive = {0.2, 0.3, 0.5, 0.6};        // expensive VMs
+
         int ram = 512;
         long bw = 1000;
         long size = 10000;
@@ -155,7 +186,11 @@ public class Main {
 
         for (int i = 0; i < mips.length; i++) {
             CustomVM vm = new CustomVM(i, brokerId, mips[i], pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-            vm.setPrice(prices[i]);
+            if (isCostAware) {
+                vm.setPrice(pricesCostAware[i]);
+            } else {
+                vm.setPrice(pricesNaive[i]);
+            }
             vms.add(vm);
         }
 
@@ -180,7 +215,7 @@ public class Main {
         return list;
     }
 
-    private static void printCloudletList(List<Cloudlet> list) {
+    private static double printCloudletList(List<Cloudlet> list, List<CustomVM> vms) {
         int size = list.size();
         Cloudlet cloudlet;
         String indent = "    ";
@@ -201,7 +236,7 @@ public class Main {
         }
 
         double totalCost = 0.0;
-        for (CustomVM vm : vmList) {
+        for (CustomVM vm : vms) {
             boolean used = false;
             for (Cloudlet i : list) {
                 if (i.getVmId() == vm.getId()) {
@@ -215,5 +250,6 @@ public class Main {
         }
 
         Log.printLine("Total cost: $" + dft.format(totalCost));
+        return totalCost;
     }
 }
