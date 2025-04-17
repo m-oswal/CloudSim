@@ -44,7 +44,7 @@ class CustomVM extends Vm {
     }
 }
 
-public class Main{
+public class Main {
     private static List<Cloudlet> cloudletList;
     private static List<CustomVM> vmList;
 
@@ -62,23 +62,12 @@ public class Main{
             vmList = createVMs(brokerId);
             cloudletList = createCloudlets(brokerId);
 
-            Collections.sort(cloudletList, new Comparator<Cloudlet>() {
-                @Override
-                public int compare(Cloudlet c1, Cloudlet c2) {
-                    return Long.compare(c1.getCloudletLength(), c2.getCloudletLength());
-                }
-            });
-
-            Collections.sort(vmList, new Comparator<CustomVM>() {
-                @Override
-                public int compare(CustomVM v1, CustomVM v2) {
-                    return Double.compare(v1.getPrice(), v2.getPrice());
-                }
-            });
+            Collections.sort(cloudletList, Comparator.comparingLong(Cloudlet::getCloudletLength));
+            Collections.sort(vmList, Comparator.comparingDouble(CustomVM::getPrice));
 
             assignOptimally(cloudletList, vmList);
 
-            broker.submitVmList(new ArrayList<Vm>(vmList));
+            broker.submitVmList(new ArrayList<>(vmList));
             broker.submitCloudletList(cloudletList);
 
             CloudSim.startSimulation();
@@ -111,9 +100,9 @@ public class Main{
     }
 
     private static Datacenter createDatacenter(String name) {
-        List<Host> hostList = new ArrayList<Host>();
+        List<Host> hostList = new ArrayList<>();
 
-        List<Pe> peList = new ArrayList<Pe>();
+        List<Pe> peList = new ArrayList<>();
         peList.add(new Pe(0, new PeProvisionerSimple(50000)));
 
         int hostId = 0;
@@ -121,32 +110,21 @@ public class Main{
         long storage = 1000000;
         int bw = 10000;
 
-        hostList.add(
-                new Host(
-                        hostId,
-                        new RamProvisionerSimple(ram),
-                        new BwProvisionerSimple(bw),
-                        storage,
-                        peList,
-                        new VmSchedulerTimeShared(peList)
-                )
-        );
+        hostList.add(new Host(hostId, new RamProvisionerSimple(ram), new BwProvisionerSimple(bw), storage, peList, new VmSchedulerTimeShared(peList)));
 
         String arch = "x86";
         String os = "Linux";
         String vmm = "Xen";
-        double time_zone = 10.0;
+        double timeZone = 10.0;
         double cost = 3.0;
         double costPerMem = 0.05;
         double costPerStorage = 0.001;
         double costPerBw = 0.0;
-        LinkedList<Storage> storageList = new LinkedList<Storage>();
+        LinkedList<Storage> storageList = new LinkedList<>();
 
-        DatacenterCharacteristics characteristics = new DatacenterCharacteristics(
-                arch, os, vmm, hostList, time_zone, cost, costPerMem,
-                costPerStorage, costPerBw);
+        DatacenterCharacteristics characteristics = new DatacenterCharacteristics(arch, os, vmm, hostList, timeZone, cost, costPerMem, costPerStorage, costPerBw);
 
-        Datacenter datacenter = null;
+        Datacenter dat acenter = null;
         try {
             datacenter = new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), storageList, 0);
         } catch (Exception e) {
@@ -168,7 +146,7 @@ public class Main{
     }
 
     private static List<CustomVM> createVMs(int brokerId) {
-        List<CustomVM> vms = new ArrayList<CustomVM>();
+        List<CustomVM> vms = new ArrayList<>();
 
         int[] mips = {1000, 2000, 3000, 4000};
         double[] prices = {0.1, 0.15, 0.3, 0.35};
@@ -188,7 +166,7 @@ public class Main{
     }
 
     private static List<Cloudlet> createCloudlets(int brokerId) {
-        List<Cloudlet> list = new ArrayList<Cloudlet>();
+        List<Cloudlet> list = new ArrayList<>();
 
         long[] lengths = {1000, 2000, 5000, 8000, 10000, 15000, 20000, 25000, 30000, 40000};
         long fileSize = 300;
@@ -198,7 +176,7 @@ public class Main{
 
         for (int i = 0; i < lengths.length; i++) {
             Cloudlet cloudlet = new Cloudlet(i, lengths[i], pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-            cloudlet.setUserId(brokerId);
+            cloudlet.setUser Id(brokerId);
             list.add(cloudlet);
         }
 
